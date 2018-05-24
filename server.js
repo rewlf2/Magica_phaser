@@ -27,32 +27,6 @@ function onMysqlTest() {
 	console.log("MySQL test started");
 	const con = getMysqlCon();
 	mysql_outputs = {username: "a", password: "b"};
-
-	/*
-	con.connect(function(err) {
-		if (err) throw err;
-		else {
-			console.log("Connected!");
-		
-			// execute will internally call prepare and query
-			con.execute(
-				'SELECT username, password FROM `magica_user` WHERE `uid` = ?',
-				[21],
-				function(err, results, fields) {
-					// console.log(fields); // fields contains extra meta data about results, if available
-					// results.forEach(testFunction);
-					// If you execute same statement again, it will be picked form a LRU cache
-					// which will save query preparation time and give better performance
-					mysql_outputs = {username: results[0].username, password: results[0].password};
-					io.emit('mysql_change_text', mysql_outputs);
-				}
-			);
-			con.end(function(err) {
-				console.log("Closed connection");
-			});
-		}
-	});
-	*/
 	
 	con.connect(function(err) {
 		if (err) throw err;
@@ -90,32 +64,25 @@ function onMysqlTest() {
 	});
 }
 
- // io connection 
+// io connection 
+
+var express = require('express');
+var app = express();
+
+var serv = require('http').Server(app);
+var io = require('socket.io')(serv,{origins: "http://localhost:*"});
 
 if (env == "production") {
 
-	var express = require('express');
+   app.get('/',function(req, res) {
+	   res.sendFile(__dirname + '/dist/index.html');
+   });
+   app.use('/dist',express.static(__dirname + '/dist'));
 
-	var app = express();
-	// Allow CORS for local debug
-	app.use(function(req, res) {
-	res.header('Access-Control-Allow-Origin', 'example.com');
-	res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-	res.header('Access-Control-Allow-Headers', 'Content-Type');
-	});
+   serv.listen(port, function(){
+	   console.log("Server is listening on port " + port);
+   });
 
-	var serv = require('http').Server(app);
-	var io = require('socket.io')(serv,{origins: "http://localhost:*"});
-	
-	app.get('/',function(req, res) {
-		res.sendFile(__dirname + '/dist/index.html');
-	});
-	// /client changes into /src
-	app.use('/ajax',express.static(__dirname + '/src'));
-
-	serv.listen(port, function(){
-		console.log("Server is listening on port " + port);
-	});
 }
 
 io.sockets.on('connection', function(socket){
